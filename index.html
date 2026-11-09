@@ -40,15 +40,16 @@ body {
 
 
 .topp {
-  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px);
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 24px);
   left: 0; right: 0;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex; justify-content: space-between; gap: 12px;
   pointer-events: none;
 }
-.tall { display: flex; flex-direction: column; gap: 2px; text-shadow: 0 1px 6px rgba(20, 10, 50, 0.6); }
-.tall span { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; text-shadow: 0 1px 4px rgba(20, 10, 50, 0.8); }
+/* Skarp, tett skygge i stedet for en bred og myk, så teksten ikke ser uklar ut */
+.tall { display: flex; flex-direction: column; gap: 2px; text-shadow: 0 1px 1px rgba(20, 10, 50, 0.45); }
+.tall span { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; }
 .tall b { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tall.hoyre { text-align: right; }
 #liv { color: var(--accent); letter-spacing: 0.1em; font-size: 18px; line-height: 27px; }
@@ -57,7 +58,7 @@ body {
 /* Små merker med pil og tall som viser forholdene */
 #forhold {
   position: fixed; left: 50%; transform: translateX(-50%);
-  top: calc(env(safe-area-inset-top, 0px) + 68px);
+  top: calc(env(safe-area-inset-top, 0px) + 80px);
   display: flex; gap: 8px; pointer-events: none;
 }
 .pille {
@@ -184,7 +185,7 @@ body {
   <p>Slipp katten og land så nær midten av neste plattform som mulig. Følg med, for vinden og tyngdekraften endrer seg underveis.</p>
   <p><b>Trykk på skjermen når du vil hoppe.</b></p>
   <button type="button">Start</button>
-  <small class="versjon">Versjon 34</small>
+  <small class="versjon">Versjon 35</small>
 </div>
 
 <script>
