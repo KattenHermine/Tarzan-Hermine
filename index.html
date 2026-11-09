@@ -34,7 +34,8 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-#spill { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+/* 100vh og 100lvh dekker hele skjermen, også under statuslinja når spillet er lagt til på hjemskjermen */
+#spill { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100lvh; display: block; touch-action: none; }
 
 .topp {
   position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -156,6 +157,7 @@ body {
   box-shadow: 0 4px 0 #c46f2a, 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 #melding button:active { transform: translateY(3px); box-shadow: 0 1px 0 #c46f2a, 0 4px 10px rgba(0, 0, 0, 0.3); }
+#melding .versjon { font-size: 11px; color: rgba(255, 255, 255, 0.45); }
 #melding p { margin: 0; color: rgba(255, 255, 255, 0.85); font-size: 15px; line-height: 1.45; }
 
 </style>
@@ -180,6 +182,7 @@ body {
   <p>Slipp katten og land så nær midten av neste plattform som mulig. Følg med, for vinden og tyngdekraften endrer seg underveis.</p>
   <p><b>Trykk på skjermen når du vil hoppe.</b></p>
   <button type="button">Start</button>
+  <small class="versjon">Versjon 32</small>
 </div>
 
 <script>
@@ -729,11 +732,11 @@ let skala = 32, basisSkala = 32, skjermB = 0, skjermH = 0;
 
 function tilpassStorrelse() {
   const dpr = window.devicePixelRatio || 1;
-  skjermB = window.innerWidth; skjermH = window.innerHeight;
-  // Lagt til på hjemskjermen på iPhone regner Safari høyden uten statuslinja,
-  // så spillet ble for lavt og en blå stripe vistes nederst. Da bruker vi hele skjermen.
-  if (navigator.standalone && Math.abs(screen.width - skjermB) < 2) skjermH = Math.max(skjermH, screen.height);
-  lerret.style.width = skjermB + "px"; lerret.style.height = skjermH + "px";
+  // Leser størrelsen fra selve lerretet, som CSS strekker over hele skjermen.
+  // Lagt til på hjemskjermen på iPhone er window.innerHeight for lav, og da ble det en blå stripe nederst.
+  const boks = lerret.getBoundingClientRect();
+  skjermB = Math.round(boks.width) || window.innerWidth;
+  skjermH = Math.max(Math.round(boks.height), window.innerHeight);
   lerret.width = skjermB * dpr; lerret.height = skjermH * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   basisSkala = Math.min(skjermB / SYNLIG_BREDDE, skjermH / 11);
