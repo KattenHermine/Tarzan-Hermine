@@ -1,6 +1,6 @@
 // Lagrer spillet på telefonen første gang det åpnes, så det virker uten nett etterpå.
 // Bytt versjonsnavnet når spillet oppdateres, så telefonen henter den nye utgaven.
-const LAGER = "tarzan-hermine-v32";
+const LAGER = "tarzan-hermine-v33";
 const FILER = ["./", "./index.html", "./manifest.webmanifest", "./ikon-180.png", "./ikon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(LAGER).then(c => c.addAll(FILER))); self.skipWaiting(); });
 self.addEventListener("activate", e => {

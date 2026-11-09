@@ -36,6 +36,11 @@ body {
 }
 /* 100vh og 100lvh dekker hele skjermen, også under statuslinja når spillet er lagt til på hjemskjermen */
 #spill { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100lvh; display: block; touch-action: none; }
+/* På hjemskjermen med gjennomsiktig statuslinje regner iPhone høyden uten statuslinja.
+   Da legger vi den høyden til, så det ikke blir en blå stripe nederst. */
+@media (display-mode: standalone) {
+  #spill { height: calc(100vh + env(safe-area-inset-top, 0px)); }
+}
 
 .topp {
   position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -182,7 +187,7 @@ body {
   <p>Slipp katten og land så nær midten av neste plattform som mulig. Følg med, for vinden og tyngdekraften endrer seg underveis.</p>
   <p><b>Trykk på skjermen når du vil hoppe.</b></p>
   <button type="button">Start</button>
-  <small class="versjon">Versjon 32</small>
+  <small class="versjon">Versjon 33</small>
 </div>
 
 <script>
@@ -737,6 +742,8 @@ function tilpassStorrelse() {
   const boks = lerret.getBoundingClientRect();
   skjermB = Math.round(boks.width) || window.innerWidth;
   skjermH = Math.max(Math.round(boks.height), window.innerHeight);
+  // Reserve i tilfelle telefonen ikke forstår CSS-regelen over
+  if (navigator.standalone && Math.abs(screen.width - skjermB) < 2) skjermH = Math.max(skjermH, screen.height);
   lerret.width = skjermB * dpr; lerret.height = skjermH * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   basisSkala = Math.min(skjermB / SYNLIG_BREDDE, skjermH / 11);
