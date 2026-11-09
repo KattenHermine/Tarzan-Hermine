@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tarzan-Hermine">
+<!-- Vanlig (ikke gjennomsiktig) statuslinje: da får spillet hele høyden under den, uten stripe nederst -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Tarzan-Hermine">
 <meta name="theme-color" content="#2c3570"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="ikon-180.png">
 <title>Tarzan-Hermine</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -36,11 +37,7 @@ body {
 }
 /* 100vh og 100lvh dekker hele skjermen, også under statuslinja når spillet er lagt til på hjemskjermen */
 #spill { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100lvh; display: block; touch-action: none; }
-/* På hjemskjermen med gjennomsiktig statuslinje regner iPhone høyden uten statuslinja.
-   Da legger vi den høyden til, så det ikke blir en blå stripe nederst. */
-@media (display-mode: standalone) {
-  #spill { height: calc(100vh + env(safe-area-inset-top, 0px)); }
-}
+
 
 .topp {
   position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -187,7 +184,7 @@ body {
   <p>Slipp katten og land så nær midten av neste plattform som mulig. Følg med, for vinden og tyngdekraften endrer seg underveis.</p>
   <p><b>Trykk på skjermen når du vil hoppe.</b></p>
   <button type="button">Start</button>
-  <small class="versjon">Versjon 33</small>
+  <small class="versjon">Versjon 34</small>
 </div>
 
 <script>
@@ -742,8 +739,6 @@ function tilpassStorrelse() {
   const boks = lerret.getBoundingClientRect();
   skjermB = Math.round(boks.width) || window.innerWidth;
   skjermH = Math.max(Math.round(boks.height), window.innerHeight);
-  // Reserve i tilfelle telefonen ikke forstår CSS-regelen over
-  if (navigator.standalone && Math.abs(screen.width - skjermB) < 2) skjermH = Math.max(skjermH, screen.height);
   lerret.width = skjermB * dpr; lerret.height = skjermH * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   basisSkala = Math.min(skjermB / SYNLIG_BREDDE, skjermH / 11);
