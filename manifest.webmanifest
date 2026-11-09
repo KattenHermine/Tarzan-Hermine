@@ -1,0 +1,13 @@
+{
+  "name": "Tarzan-Hermine",
+  "short_name": "Tarzan-Hermine",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2c3570",
+  "theme_color": "#2c3570",
+  "icons": [
+    { "src": "ikon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

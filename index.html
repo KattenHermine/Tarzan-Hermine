@@ -1,0 +1,1390 @@
+<!doctype html>
+<html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tarzan-Hermine">
+<meta name="theme-color" content="#2c3570"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="ikon-180.png">
+<title>Tarzan-Hermine</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Prototype: én skjerm, spillet tegnes på et lerret som fyller hele skjermen. Bevisst ett rolig, mørkt uttrykk. */
+:root {
+  --bg: #1c2330;
+  --fg: #e9edf3;
+  --muted: #8d98aa;
+  --line: #3b4659;
+  --accent: #f0c97d;
+  --good: #92d8ad;
+  --panel: #262f3f;
+  --vind: #8cc4e6;
+  --lett: #c2a8ef;
+  --tung: #e6a18d;
+  --pels: #c4875a;
+  --ansikt: #f1d4b0;
+  --oye: #2a201b;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: #2c3570;
+  color: var(--fg);
+  overflow: hidden;
+  font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#spill { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.topp {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 0; right: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; justify-content: space-between; gap: 12px;
+  pointer-events: none;
+}
+.tall { display: flex; flex-direction: column; gap: 2px; text-shadow: 0 1px 6px rgba(20, 10, 50, 0.6); }
+.tall span { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.8); }
+.tall b { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tall.hoyre { text-align: right; }
+#liv { color: var(--accent); letter-spacing: 0.1em; font-size: 18px; line-height: 27px; }
+#liv i { color: var(--line); font-style: normal; }
+
+/* Små merker med pil og tall som viser forholdene */
+#forhold {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top, 0px) + 68px);
+  display: flex; gap: 8px; pointer-events: none;
+}
+.pille {
+  --c: var(--fg);
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 10px 3px 6px; border-radius: 999px;
+  background: rgba(22, 16, 44, 0.55); border: 1.5px solid var(--c);
+  color: #fff; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums;
+}
+.pille svg { width: 20px; height: 20px; fill: none; stroke: var(--c); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.pille.ny { animation: sprett 0.5s ease-out, puls 0.55s ease-in-out 0.5s 4; }
+.pille.endret { animation: puls 0.45s ease-in-out 5; }
+.pille.endret b { animation: tall 0.45s ease-in-out 5; }
+.pille b { font-weight: 700; }
+@keyframes tall { 50% { color: var(--c); } }
+.pille.ekstrem { animation: sprett 0.5s ease-out, puls 0.7s ease-in-out 0.5s infinite; }
+@keyframes sprett { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes puls { 50% { box-shadow: 0 0 14px 3px var(--c); transform: scale(1.1); } }
+
+/* Stort varsel midt på skjermen og et blink langs kanten når forholdene skifter */
+#varsel {
+  position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%);
+  width: max-content; max-width: calc(100% - 32px); text-align: center;
+  font-size: 30px; font-weight: 800; color: #fff; pointer-events: none; opacity: 0;
+  text-shadow: 0 2px 12px rgba(20, 10, 50, 0.7);
+}
+#varsel.vis { animation: varsel 1.8s ease-out; }
+#varsel.liten { font-size: 22px; }
+/* Stort skilt når du går opp et level */
+#level {
+  position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%);
+  text-align: center; color: #fff; pointer-events: none; opacity: 0;
+}
+/* Solstråler som snurrer bak teksten */
+#level::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 520px; height: 520px; margin: -260px 0 0 -260px;
+  z-index: -1; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 230, 140, 0.45) 0 10deg, rgba(255, 230, 140, 0) 10deg 20deg);
+  -webkit-mask: radial-gradient(circle, #000 15%, transparent 65%); mask: radial-gradient(circle, #000 15%, transparent 65%);
+  animation: snurr 6s linear infinite;
+}
+#level b {
+  display: block; white-space: nowrap; font-size: 60px; font-weight: 900; line-height: 1.05; letter-spacing: 0.02em;
+  background: linear-gradient(180deg, #fff7c2 0%, #ffd447 45%, #ff8a3d 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 3px 0 #b5462a) drop-shadow(0 6px 16px rgba(20, 10, 50, 0.6));
+}
+#level span { display: block; margin-top: 4px; font-size: 22px; font-weight: 800; text-shadow: 0 2px 10px rgba(20, 10, 50, 0.8); }
+#level.vis { animation: levelInn 2.6s ease-out; }
+@keyframes levelInn {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(-12deg); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1.35) rotate(4deg); }
+  20% { transform: translate(-50%, -50%) scale(0.95) rotate(-2deg); }
+  27% { transform: translate(-50%, -50%) scale(1.05) rotate(0); }
+  34%, 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -80%) scale(1.1); }
+}
+@keyframes snurr { to { transform: rotate(360deg); } }
+/* Hvitt blitz over hele skjermen ved nytt level */
+#blitz { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 40%, #fff6d0, rgba(255, 246, 208, 0.4)); }
+#blitz.vis { animation: blitz 0.7s ease-out; }
+@keyframes blitz { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+/* Livene blinker rødt når du mister ett */
+#liv.minus { animation: livMinus 0.22s steps(1) 7; }
+@keyframes livMinus { 0% { color: #ff4f6d; transform: scale(1.25); } 50% { color: var(--accent); opacity: 0.25; transform: scale(1); } }
+#liv.pluss { animation: livPluss 0.5s ease-in-out 3; }
+@keyframes livPluss { 50% { transform: scale(1.35); text-shadow: 0 0 10px var(--accent); } }
+@keyframes varsel {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  28% { transform: translate(-50%, -50%) scale(1); }
+  75% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+}
+#kant { position: fixed; inset: 0; pointer-events: none; opacity: 0; box-shadow: inset 0 0 70px 10px var(--c, #fff); }
+#kant.vis { animation: blink 1.2s ease-out; }
+@keyframes blink { 0%, 40% { opacity: 1; } 20%, 60% { opacity: 0.25; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .pille.ny, .pille.endret, .pille.endret b, .pille.ekstrem, #kant.vis, #liv.pluss { animation: none; }
+  #varsel.vis, #level.vis { animation: none; opacity: 1; }
+  #level::before, #blitz.vis, #liv.minus { animation: none; }
+}
+
+#melding {
+  position: fixed; left: 50%; top: 24%; transform: translate(-50%, -50%);
+  width: min(320px, calc(100% - 32px));
+  text-align: center; pointer-events: none;
+  display: flex; flex-direction: column; gap: 8px;
+  /* Mørk, gjennomsiktig plate bak teksten, så den kan leses uansett tid på døgnet */
+  padding: 18px 18px 16px; border-radius: 20px;
+  background: rgba(22, 16, 44, 0.72); box-shadow: 0 8px 30px rgba(10, 6, 30, 0.35);
+}
+#melding h1 { margin: 0; font-size: 28px; font-weight: 600; text-wrap: balance; }
+#melding button {
+  pointer-events: auto; align-self: center; margin-top: 6px;
+  font: inherit; font-size: 20px; font-weight: 800; color: #2a1640;
+  padding: 12px 40px; border: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(180deg, #ffe07a, #f7a94b);
+  box-shadow: 0 4px 0 #c46f2a, 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+#melding button:active { transform: translateY(3px); box-shadow: 0 1px 0 #c46f2a, 0 4px 10px rgba(0, 0, 0, 0.3); }
+#melding p { margin: 0; color: rgba(255, 255, 255, 0.85); font-size: 15px; line-height: 1.45; }
+
+</style>
+
+<canvas id="spill" aria-label="Spillflate. Trykk for å slippe figuren."></canvas>
+
+<div class="topp">
+  <div class="tall"><span>Poeng</span><b id="poeng">0</b></div>
+  <div class="tall"><span>Plattformer</span><b id="runde">0</b></div>
+  <div class="tall"><span>Liv</span><b id="liv" aria-label="3 liv">●●●</b></div>
+  <div class="tall hoyre"><span>Rekord</span><b id="rekord">0</b></div>
+</div>
+
+<div id="forhold" aria-live="polite"></div>
+<div id="varsel" aria-hidden="true"></div>
+<div id="kant"></div>
+<div id="blitz"></div>
+<div id="level" aria-live="polite"></div>
+
+<div id="melding">
+  <h1>Tarzan-Hermine</h1>
+  <p>Slipp katten og land så nær midten av neste plattform som mulig. Følg med, for vinden og tyngdekraften endrer seg underveis.</p>
+  <p><b>Trykk på skjermen når du vil hoppe.</b></p>
+  <button type="button">Start</button>
+</div>
+
+<script>
+// ============================================================
+// INNSTILLINGER: disse tallene kan du trygt endre selv.
+// Spilleren kan ikke endre dem. Vanskeligheten øker av seg selv.
+// ============================================================
+const innst = {
+  tyngdekraft: 18,       // hvor fort figuren faller når den flyr (endres av sonene)
+  svingTyngde: 18,       // hvor fort den svinger (alltid likt, høyere tall = raskere sving)
+  svingvinkel: 50,       // hvor høyt pendelen svinger ut, i grader
+  tauLengde: 3.2,        // lengden på tauet (i "meter")
+  hoppKraft: 1.25,       // hvor mye ekstra fart figuren får når den hopper fra tauet
+  hoppOpp: 1.5,          // hvor mye den spretter oppover i hoppet
+  plattformBredde: 2.4,  // vanlig bredde på plattformene i starten
+  minStorrelse: 0.75,     // minste plattform, ganget med vanlig bredde
+  maksStorrelse: 1.3,    // største plattform, ganget med vanlig bredde
+  krymping: 0.015,        // hvor mye plattformene krymper for hver du klarer
+  minsteBredde: 1.2,     // ingen plattform blir smalere enn dette
+  minAvstand: 3.2,       // korteste hopp til neste plattform
+  hoydeOpp: 2.0,         // hvor mye høyere neste plattform kan ligge
+  hoydeNed: 3.0,         // hvor mye lavere neste plattform kan ligge
+  forsteRolige: 10,      // antall vanlige plattformer i starten
+  roligeMin: 5,          // korteste rolige strekning i starten
+  roligeMaks: 8,         // lengste rolige strekning i starten
+  roligeMinSent: 1,      // korteste rolige strekning når du har kommet langt
+  roligeMaksSent: 3,     // lengste rolige strekning når du har kommet langt
+  fullVanskelighet: 60,  // etter så mange plattformer er spillet på sitt vanskeligste
+  spesialMin: 3,         // korteste spesielle strekning
+  spesialMaks: 4,        // lengste spesielle strekning
+  liv: 3,                // antall liv ved start (og det meste du kan ha)
+  livHver: 10,           // du får ett liv tilbake hver gang du har klart så mange plattformer
+  levelHver: 10,         // nytt level (og ny tid på døgnet) etter så mange plattformer
+  levelPause: 2.8,       // ekstra tid til å feire når du går opp et level
+  dognFart: 0.35,        // hvor fort himmelen skifter til ny tid på døgnet
+  landingsPause: 1.3,    // sekunder figuren står og nyter landingen
+  perfektPause: 2.6,     // litt lengre feiring ved treff midt i
+  kantPause: 2.8,        // tid til å balansere seg på plass ved kanttreff
+  kastTid: 0.55,         // hvor lang tid katten bruker på å kaste tauet opp til festet
+  loftTid: 1.5,          // hvor lang tid katten bruker på å klatre opp tauet
+  klatreTak: 4,          // hvor mange tak katten tar når den klatrer
+  vindPerNivaa: 0.5,     // hvor mye sterkere vinden blir per nivå
+  kjedeSjanse: 0.3,      // sjansen i starten for at et avvik følges rett av et nytt
+  kjedeSjanseSent: 0.8,  // samme sjanse når du har kommet langt
+  kombiFra: 3,           // etter så mange avvik kan vind og tyngdekraft komme samtidig
+  ekstremFra: 3,         // etter så mange avvik kan det komme ekstreme strekninger
+  stormMellom: 4,        // minst så mange vanlige avvik mellom to stormer
+  ekstremSjanse: 0.25    // hvor ofte et avvik blir ekstremt
+};
+
+// ============================================================
+// POENGSONER på plattformen, fra midten og utover.
+// andel = hvor stor del av plattformen sonen dekker
+// ============================================================
+const POENGSONER = [
+  { navn: "Midt i!", andel: 0.15, poeng: 100 },
+  { navn: "Godt",    andel: 0.5,  poeng: 50 },
+  { navn: "",        andel: 1,    poeng: 20 }
+];
+// Treffer figuren bare såvidt kanten, overlever den med få poeng.
+const KANTTREFF = { navn: "Såvidt!", poeng: 5 };
+
+// ============================================================
+// SONER: strekninger med andre forhold. Her kan du legge til nye.
+// Hver sone har nivå 1 til 10. Nivå 1 er helt vanlig, nivå 10 er det sterkeste.
+// effekt(nivå) gir tyngde (ganges med tyngdekraften) og vind (dytt sidelengs, minus = mot deg).
+// Svingen er alltid lik. Det er bare flyturen som påvirkes.
+// ============================================================
+const SONER = {
+  vanlig:  { navn: "Vanlige forhold", kort: "",  tekst: "Tilbake til det normale",   farge: "--line", effekt: n => ({ tyngde: 1, vind: 0 }) },
+  motvind: { endring: ["Sterkere motvind", "Svakere motvind"], kort: "Motvind", navn: "Motvind",          tekst: "Vinden blåser mot deg",     farge: "--vind", effekt: n => ({ tyngde: 1, vind: -(n - 1) * innst.vindPerNivaa }) },
+  medvind: { endring: ["Sterkere medvind", "Svakere medvind"], kort: "Medvind", navn: "Medvind",          tekst: "Vinden dytter deg fremover", farge: "--vind", effekt: n => ({ tyngde: 1, vind: (n - 1) * innst.vindPerNivaa }) },
+  lett:    { endring: ["Enda lettere", "Litt mindre lett"], kort: "Lett", navn: "Lett tyngdekraft", tekst: "Du svever lenger",          farge: "--lett", effekt: n => ({ tyngde: 1 - (n - 1) * 0.055, vind: 0 }) },
+  tung:    { endring: ["Enda tyngre", "Litt mindre tungt"], kort: "Tung", navn: "Tung tyngdekraft", tekst: "Du faller fortere",         farge: "--tung", effekt: n => ({ tyngde: 1 + (n - 1) * 0.07, vind: 0 }) }
+};
+// Små ikoner: pil mot eller med deg for vind, pil ned eller opp for tyngdekraft
+const IKONER = {
+  motvind: '<svg viewBox="0 0 24 24"><path d="M20 12H5M10 6l-6 6 6 6"/></svg>',
+  medvind: '<svg viewBox="0 0 24 24"><path d="M4 12h15M14 6l6 6-6 6"/></svg>',
+  tung: '<svg viewBox="0 0 24 24"><path d="M12 3v15M6 13l6 6 6-6M5 22h14"/></svg>',
+  lett: '<svg viewBox="0 0 24 24"><path d="M12 21V6M6 11l6-6 6 6M5 2h14"/></svg>'
+};
+const SPESIALSONER = ["motvind", "medvind", "lett", "tung"];
+
+// Verdenen måles i "meter". x øker mot høyre, y øker nedover.
+const FIGUR_RADIUS = 0.68;
+const KLARING = 3.5;      // hvor høyt over plattformen figuren henger når den svinger
+const SYNLIG_BREDDE = 9;  // hvor mange meter av banen som vises i bredden
+const KAMERA_FORAN = 1.8; // hvor langt foran tauet kameraet ser
+
+// Henter rekorden, hvis nettleseren har lagret den.
+let rekord = 0;
+try {
+  rekord = Number(localStorage.getItem("svinge-rekord")) || 0;
+} catch (e) {}
+
+function lagre() {
+  try {
+    localStorage.setItem("svinge-rekord", String(rekord));
+  } catch (e) {}
+}
+
+// ============================================================
+// SPILLETS TILSTAND
+// ============================================================
+const spill = {
+  fase: "start",   // start, sving, flyr, landet, loftes, slutt
+  plattformer: [], // hele banen: { x, y, b, sone } = midten, høyden, bredden og forholdene
+  soneplan: null,  // holder styr på når neste spesielle strekning kommer
+  visSone: "vanlig:",
+  tid: 0,
+  her: 0,          // nummeret på plattformen figuren står på
+  anker: { x: 0, y: 0 }, // punktet tauet henger fra
+  vinkel: 0,       // pendelens vinkel (radianer, 0 = rett ned)
+  vinkelFart: 0,
+  x: 0, y: 0,      // figurens posisjon
+  vx: 0, vy: 0,    // figurens fart
+  loft: null,      // brukes mens figuren løftes opp
+  poeng: 0,
+  klart: 0,        // antall plattformer du har klart
+  kamera: { x: 0, y: 0 },
+  dogn: 0,         // hvor langt døgnet har kommet: 0 morgen, 1 dag, 2 kveld, 3 natt, 4 morgen igjen
+
+  spor: [],
+  tekster: [],
+  glod: [],        // lys i plattformer ved perfekt treff
+  klem: 0,
+  klatring: 0,     // hvor langt katten har kommet i klatringen, i antall tak
+  vingle: 0,       // figuren vingler på kanten etter et kanttreff
+  blink: 0,        // katten blinker en liten stund etter at du har mistet et liv
+  balanse: null,   // balansenummeret på kanten: { t: tid, side: -1 venstre / 1 høyre, fraX }
+  landTid: 0,      // tid siden landing, brukes til det lille hoppet
+  partikler: [],   // støv og gnister ved landing
+  ventetid: 0
+};
+
+const tilfeldigHeltall = (fra, til) => fra + Math.floor(Math.random() * (til - fra + 1));
+
+// Bestemmer forholdene for neste plattform. Rolig i starten, så kommer avvikene
+// tettere, gjerne flere på rad, med vind og tyngdekraft samtidig og av og til ekstremt.
+const blande = (a, b, t) => a + (b - a) * t;
+const VINDTYPER = ["motvind", "medvind"], TYNGDETYPER = ["lett", "tung"];
+const tilfeldig = liste => liste[Math.floor(Math.random() * liste.length)];
+
+// En storm bygger seg opp over noen plattformer før den når maks (10 + 10)
+const STORM = [5, 7, 9, 10, 10];
+function lagAvvik(plan) {
+  const maksNivaa = Math.min(10, 3 + Math.floor(plan.antall * 1.5));
+  // Stormer kommer tidligst etter noen avvik, og med god avstand til forrige storm
+  const ekstrem = plan.antall >= innst.ekstremFra && plan.antall - (plan.sisteStorm || -99) > innst.stormMellom && Math.random() < innst.ekstremSjanse;
+  if (ekstrem) plan.sisteStorm = plan.antall;
+  // Ekstrem betyr alltid maks vind og maks tyngdekraft samtidig
+  const kombi = ekstrem || (plan.antall >= innst.kombiFra && Math.random() < 0.25 + 0.35 * plan.fremdrift);
+  let typer;
+  if (kombi) typer = [tilfeldig(VINDTYPER), tilfeldig(TYNGDETYPER)];
+  else typer = [tilfeldig(SPESIALSONER.filter(t => t !== plan.sisteNavn))];
+  // Kombinasjoner får litt lavere nivå, så det ikke blir håpløst. Ekstreme går helt til topps.
+  const nivaa = () => ekstrem ? 10 : tilfeldigHeltall(2, kombi ? Math.max(2, maksNivaa - 2) : maksNivaa);
+  return { ekstrem, deler: typer.map(type => ({ type, nivaa: nivaa() })) };
+}
+
+function nesteSone() {
+  const plan = spill.soneplan;
+  plan.fremdrift = Math.min(1, Math.max(0, (spill.plattformer.length - innst.forsteRolige) / innst.fullVanskelighet));
+  if (plan.igjen <= 0) {
+    const fraAvvik = plan.type !== "vanlig";
+    // Etter en storm kommer det alltid en rolig strekning, så du får pustet ut
+    if (!plan.ekstrem && (!fraAvvik || Math.random() < blande(innst.kjedeSjanse, innst.kjedeSjanseSent, plan.fremdrift))) {
+      plan.antall++;
+      const avvik = lagAvvik(plan);
+      plan.type = "avvik";
+      plan.deler = avvik.deler;
+      plan.ekstrem = avvik.ekstrem;
+      plan.sisteNavn = avvik.deler.map(d => d.type).join("+");
+      plan.igjen = avvik.ekstrem ? STORM.length : tilfeldigHeltall(innst.spesialMin, innst.spesialMaks);
+    } else {
+      plan.type = "vanlig";
+      plan.deler = [];
+      plan.ekstrem = false;
+      plan.sisteNavn = "";
+      plan.igjen = tilfeldigHeltall(Math.round(blande(innst.roligeMin, innst.roligeMinSent, plan.fremdrift)),
+                                    Math.round(blande(innst.roligeMaks, innst.roligeMaksSent, plan.fremdrift)));
+    }
+  }
+  plan.igjen--;
+  if (plan.type === "vanlig") return { sone: "vanlig", deler: [], ekstrem: false };
+  if (plan.ekstrem) {
+    // Stormen bygger seg opp: vinden og tyngdekraften øker steg for steg til maks
+    const nivaa = STORM[STORM.length - 1 - plan.igjen];
+    const deler = plan.deler.map(d => ({ type: d.type, nivaa }));
+    return { sone: deler.map(d => d.type).join("+"), deler, ekstrem: nivaa === 10, storm: true };
+  }
+  // Nivået varierer litt fra plattform til plattform innenfor strekningen.
+  const deler = plan.deler.map(d => ({ type: d.type, nivaa: plan.ekstrem ? d.nivaa : Math.max(2, Math.min(10, d.nivaa + tilfeldigHeltall(-1, 1))) }));
+  return { sone: deler.map(d => d.type).join("+"), deler, ekstrem: plan.ekstrem };
+}
+
+// Slår sammen virkningen av alle forholdene på en plattform
+function effektAv(deler) {
+  let tyngde = 1, vind = 0;
+  for (const d of deler) { const e = SONER[d.type].effekt(d.nivaa); tyngde *= e.tyngde; vind += e.vind; }
+  return { tyngde, vind };
+}
+
+// Prøver alle slippunkter og finner hvor langt det er mulig å nå med disse forholdene.
+function rekkevidde(effekt, hoydeEndring) {
+  const g = innst.tyngdekraft * effekt.tyngde, L = innst.tauLengde, A = innst.svingvinkel * Math.PI / 180;
+  let lengst = -Infinity;
+  for (let a = -A + 0.02; a <= A; a += 0.03) {
+    const w = Math.sqrt(2 * innst.svingTyngde / L * (Math.cos(a) - Math.cos(A)));
+    let x = L * Math.sin(a), y = -KLARING - L + L * Math.cos(a);
+    let { vx, vy } = slippFart(a, w);
+    for (let i = 0; i < 3000; i++) {
+      const bunn = y + FIGUR_RADIUS;
+      vy += g / 240; vx += effekt.vind / 240; x += vx / 240; y += vy / 240;
+      if (vy > 0 && bunn <= hoydeEndring && y + FIGUR_RADIUS >= hoydeEndring) { lengst = Math.max(lengst, x); break; }
+    }
+  }
+  return lengst;
+}
+
+// Lager neste plattform et stykke til høyre, litt høyere eller lavere enn den forrige.
+// Avstanden tilpasses forholdene, så plattformen alltid er mulig å nå.
+function lagPlattform() {
+  const liste = spill.plattformer;
+  const nr = liste.length;
+  const vanlig = innst.plattformBredde * Math.max(0.5, 1 - nr * innst.krymping);
+  const storrelse = nr === 0 ? 1.3 : innst.minStorrelse + Math.random() * (innst.maksStorrelse - innst.minStorrelse);
+  let bredde = Math.max(innst.minsteBredde, vanlig * storrelse);
+  const { sone, deler, ekstrem, storm } = nesteSone();
+  if (nr === 0) { liste.push({ x: 0, y: 0, b: bredde, sone, deler, ekstrem }); return; }
+  const forrige = liste[nr - 1];
+  const effekt = effektAv(deler);
+  // Prøver noen tilfeldige plasseringer til vi finner en som går an å nå.
+  // Midten skal kunne nås uansett hvor på forrige plattform du landet,
+  // og plattformene skal ikke gå over i hverandre.
+  // Hvert hopp får en lengde (kort, middels, langt) og en høyde (opp, flatt, ned).
+  // Samme type hopp kommer ikke to ganger på rad, så det blir variasjon.
+  const LENGDER = [[0, 0.2], [0.35, 0.6], [0.8, 1]];   // andel av spennet fra korteste til lengste mulige hopp
+  const HOYDER = [[-innst.hoydeOpp, -1.0], [-0.4, 0.4], [1.2, innst.hoydeNed]]; // negativt tall = høyere
+  const nyType = (antall, forrigeType) => { let t; do t = Math.floor(Math.random() * antall); while (t === forrigeType); return t; };
+  const lengdeType = nyType(3, forrige.lengdeType), hoydeType = nyType(3, forrige.hoydeType);
+  let hoydeEndring, avstand, lengst, kortest;
+  for (let forsok = 0; forsok < 8; forsok++) {
+    // positivt tall = lavere. Banen trekkes litt tilbake mot midthøyden, så den ikke forsvinner opp eller ned.
+    const [lav, hoy] = HOYDER[hoydeType];
+    hoydeEndring = lav + Math.random() * (hoy - lav) - forrige.y * 0.12;
+    if (forsok > 4) hoydeEndring = Math.abs(hoydeEndring); // nødløsning: legg den lavere
+    lengst = rekkevidde(effekt, hoydeEndring) - forrige.b / 2 - 0.2;
+    kortest = Math.max(innst.minAvstand, (forrige.b + bredde) / 2 + 0.5);
+    if (lengst >= kortest) break;
+  }
+  const [fra, til] = LENGDER[lengdeType];
+  avstand = kortest + (fra + Math.random() * (til - fra)) * Math.max(0, lengst - kortest);
+  avstand = Math.min(Math.max(avstand, kortest), lengst);
+  if (avstand < kortest) bredde = Math.max(innst.minsteBredde * 0.7, 2 * (avstand - forrige.b / 2 - 0.5));
+  liste.push({ x: forrige.x + avstand, y: forrige.y + hoydeEndring, b: bredde, sone, deler, ekstrem, storm, lengdeType, hoydeType });
+}
+
+// Forholdene som gjelder nå: de på plattformen du sikter mot.
+function forhold() {
+  const p = spill.plattformer[spill.her + 1];
+  const e = effektAv(p.deler);
+  return { g: innst.tyngdekraft * e.tyngde, vind: e.vind };
+}
+
+// Viser et lite skilt når forholdene endrer seg.
+// Viser et skilt eller blink en kort stund, og tar det bort igjen etterpå.
+// Tidtakeren sørger for at det forsvinner også når animasjoner er slått av på telefonen.
+function visKort(el, ms) {
+  clearTimeout(el.tidtaker);
+  el.classList.remove("vis"); void el.offsetWidth; el.classList.add("vis");
+  el.tidtaker = setTimeout(() => el.classList.remove("vis"), ms);
+}
+function sjekkSone() {
+  const p = spill.plattformer[spill.her + 1];
+  const nokkel = p.sone + ":" + p.deler.map(d => d.nivaa).join(",");
+  if (nokkel === spill.visSone) return;
+  const [forrigeSone, forrigeTall] = spill.visSone.split(":");
+  const forrigeTyper = forrigeSone.split("+");
+  const forrigeNivaa = {};
+  forrigeTyper.forEach((t, i) => { forrigeNivaa[t] = Number((forrigeTall || "").split(",")[i]); });
+  const nyType = forrigeSone !== p.sone;
+  // Typer som er de samme som før, men har fått et annet nivå
+  const endret = p.deler.filter(d => forrigeTyper.includes(d.type) && forrigeNivaa[d.type] !== d.nivaa);
+  spill.visSone = nokkel;
+  const rad = document.getElementById("forhold");
+  // Ett lite merke per forhold: ikon og nivå. Nye merker spretter inn og blinker, nytt nivå blinker også.
+  rad.innerHTML = p.deler.map(d => {
+    const s = SONER[d.type];
+    const klasser = "pille" + (p.ekstrem ? " ekstrem" : !forrigeTyper.includes(d.type) ? " ny" : endret.includes(d) ? " endret" : "");
+    return '<span class="' + klasser + '" style="--c: ' + (p.ekstrem ? "#ff5d8f" : "var(" + s.farge + ")") + '" aria-label="' + s.navn + ', nivå ' + d.nivaa + '">' +
+      IKONER[d.type] + "<b>" + d.nivaa + "</b></span>";
+  }).join("");
+  if (!nyType && endret.length === 0) return;
+  // Ny type gir stort varsel. Bare nytt nivå gir et mindre varsel, f.eks. "Svakere motvind, fra 6 til 5".
+  const stormStart = p.ekstrem && !spill.visEkstrem;
+  spill.visEkstrem = p.ekstrem;
+  const tekst = stormStart ? "Storm! Maks vind og tyngdekraft"
+    : p.storm && nyType ? "Storm på vei!"
+    : p.storm ? "Stormen øker, nivå " + p.deler[0].nivaa
+    : !nyType ? endret.map(d => SONER[d.type].endring[d.nivaa > forrigeNivaa[d.type] ? 0 : 1] + ", fra " + forrigeNivaa[d.type] + " til " + d.nivaa).join(". ")
+    : p.sone === "vanlig" ? "Rolig igjen"
+    : (p.ekstrem ? "Ekstrem " : "") + p.deler.map(d => SONER[d.type].navn.toLowerCase()).join(" + ") + "!";
+  const varsel = document.getElementById("varsel");
+  varsel.classList.toggle("liten", !nyType && !stormStart && !p.storm);
+  varsel.textContent = tekst.charAt(0).toUpperCase() + tekst.slice(1);
+  visKort(varsel, 1800);
+  const kant = document.getElementById("kant");
+  const farge = p.sone === "vanlig" ? "#ffffff" : p.ekstrem ? "#ff5d8f" : F[SONER[(endret[0] || p.deler[0]).type].farge];
+  kant.style.setProperty("--c", farge);
+  visKort(kant, 1200);
+}
+function fyllBane() { while (spill.plattformer.length < spill.her + 4) lagPlattform(); }
+
+// Henger tauet opp over et punkt på plattformen, og finner startposisjonen bakover.
+function settAnker(x) {
+  const p = spill.plattformer[spill.her];
+  spill.anker = { x, y: p.y - KLARING - innst.tauLengde };
+}
+function startPosisjon() {
+  const v = -innst.svingvinkel * Math.PI / 180;
+  return { x: spill.anker.x + innst.tauLengde * Math.sin(v), y: spill.anker.y + innst.tauLengde * Math.cos(v), vinkel: v };
+}
+function klarTilSving() {
+  const s = startPosisjon();
+  spill.vinkel = s.vinkel;
+  spill.vinkelFart = 0;
+  oppdaterFigurPaaTau();
+}
+
+function nyttSpill() {
+  spill.plattformer = [];
+  spill.soneplan = { type: "vanlig", igjen: innst.forsteRolige, deler: [], ekstrem: false, sisteNavn: "", antall: 0, fremdrift: 0 };
+  spill.visSone = "vanlig:";
+  spill.visEkstrem = false;
+  document.getElementById("forhold").innerHTML = "";
+  spill.her = 0;
+  spill.poeng = 0;
+  spill.klart = 0;
+  spill.dogn = 0;
+  spill.liv = innst.liv;
+  spill.spor = [];
+  spill.glod = [];
+  spill.partikler = [];
+  fyllBane();
+  // Første søyle er bare et startpunkt, så den er allerede sunket bort
+  Object.assign(spill.plattformer[0], { synker: true, synk: 30, synkFart: 0 });
+  settAnker(0);
+  klarTilSving();
+  spill.kamera = { x: spill.anker.x + KAMERA_FORAN, y: 0 };
+  spill.fase = "start";
+  oppdaterTall();
+}
+
+// Start-knappen starter spillet. Etter det er hvert trykk på skjermen et hopp.
+function startSpill() {
+  skjulMelding();
+  if (spill.fase === "slutt") nyttSpill();
+  spill.fase = "sving";
+}
+
+function oppdaterFigurPaaTau() {
+  spill.x = spill.anker.x + innst.tauLengde * Math.sin(spill.vinkel);
+  spill.y = spill.anker.y + innst.tauLengde * Math.cos(spill.vinkel);
+}
+
+// Slipp: figuren tar med seg farten fra tauet og gjør et hopp i tillegg.
+function slippFart(vinkel, vinkelFart) {
+  const L = innst.tauLengde;
+  return {
+    vx: innst.hoppKraft * L * vinkelFart * Math.cos(vinkel),
+    vy: -innst.hoppKraft * L * vinkelFart * Math.sin(vinkel) - innst.hoppOpp
+  };
+}
+function slipp() {
+  const fart = slippFart(spill.vinkel, spill.vinkelFart);
+  spill.vx = fart.vx;
+  spill.vy = fart.vy;
+  spill.hoppTid = 0;
+  spill.spor = [];
+  spill.fase = "flyr";
+}
+
+function land(nr) {
+  const p = spill.plattformer[nr];
+  spill.y = p.y - FIGUR_RADIUS;
+  spill.klem = 1;
+  spill.landTid = 0;
+  spill.fase = "landet";
+  spill.ventetid = innst.landingsPause;
+  spill.balanse = null;
+  if (nr === spill.her) {
+    // Landet på samme plattform igjen: ingen poeng, men du får prøve på nytt.
+    spill.tekster.push({ x: spill.x, y: spill.y - 0.5, tekst: "Prøv igjen", liv: 1, perfekt: false });
+    return;
+  }
+  const avstand = Math.abs(spill.x - p.x) / (p.b / 2); // 0 = midten, 1 = kanten
+  let treff = POENGSONER.find(z => avstand <= z.andel);
+  if (!treff) {
+    // Utenfor kanten: figuren lander helt ytterst og må balansere for ikke å falle.
+    treff = KANTTREFF;
+    const side = Math.sign(spill.x - p.x) || 1;
+    spill.x = p.x + side * (p.b / 2 - FIGUR_RADIUS * 0.15);
+    spill.balanse = { t: 0, side, fraX: spill.x };
+    spill.ventetid = innst.kantPause;
+    spill.tekster.push({ x: spill.x, y: spill.y - 1.6, tekst: "Oi oi oi!", liv: 1.2, perfekt: false });
+  }
+  const perfekt = treff === POENGSONER[0];
+  const poeng = treff.poeng;
+  spill.poeng += poeng;
+  const forKlart = spill.klart;
+  spill.klart += nr - spill.her;
+  const nyttLevel = Math.floor(spill.klart / innst.levelHver) > Math.floor(forKlart / innst.levelHver);
+  const ekstraLiv = Math.floor(spill.klart / innst.livHver) > Math.floor(forKlart / innst.livHver) && spill.liv < innst.liv;
+  spill.her = nr;
+  fyllBane();
+  if (perfekt) { spill.glod.push({ nr, styrke: 1 }); spill.ventetid = innst.perfektPause; }
+  spill.perfektLanding = perfekt;
+  spill.merke = { x: spill.x, nr };
+  lagStov(perfekt);
+  if (perfekt) lagKonfetti();
+  spill.tekster.push({ x: spill.x, y: spill.y - 0.5, tekst: (treff.navn ? treff.navn + " " : "") + "+" + poeng, liv: 1, perfekt });
+  if (ekstraLiv) {
+    spill.liv++;
+    spill.tekster.push({ x: spill.x, y: spill.y - 1.1, tekst: "+1 liv", liv: 1.4, perfekt: true });
+  }
+  if (spill.poeng > rekord) { rekord = spill.poeng; lagre(); }
+  oppdaterTall();
+  if (nyttLevel) {
+    const level = Math.floor(spill.klart / innst.levelHver) + 1;
+    const el = document.getElementById("level");
+    el.innerHTML = "<b>Level " + level + "</b><span>" + DOGN[(level - 1) % DOGN.length].navn + "</span>";
+    visKort(el, 2600);
+    // Stas! Blitz, gullkant, dobbel konfetti, og katten feirer med piruett og salutt
+    const blitz = document.getElementById("blitz");
+    visKort(blitz, 700);
+    const kant = document.getElementById("kant");
+    kant.style.setProperty("--c", "#ffd447");
+    visKort(kant, 1200);
+    lagKonfetti(); lagKonfetti();
+    if (!spill.balanse) spill.perfektLanding = true;
+    spill.ventetid = Math.max(spill.ventetid, innst.levelPause);
+  }
+  if (ekstraLiv) {
+    const el = document.getElementById("liv");
+    el.classList.remove("pluss"); void el.offsetWidth; el.classList.add("pluss");
+  }
+}
+
+// Litt støv som virvles opp ved landing. Ved treff midt i blir det gnister og en ring.
+function lagStov(perfekt) {
+  const antall = perfekt ? 16 : 9;
+  for (let i = 0; i < antall; i++) {
+    const retning = i % 2 ? 1 : -1;
+    spill.partikler.push({
+      x: spill.x + retning * FIGUR_RADIUS * 0.6, y: spill.y + FIGUR_RADIUS * 0.8,
+      vx: retning * (0.4 + Math.random() * 1.2), vy: -(0.3 + Math.random() * (perfekt ? 1.8 : 0.8)),
+      liv: 1, storrelse: 0.04 + Math.random() * 0.05, perfekt
+    });
+  }
+  if (perfekt) spill.partikler.push({ ring: true, x: spill.x, y: spill.y + FIGUR_RADIUS, liv: 1, perfekt });
+}
+
+// Fargerik konfetti ved treff midt i
+const KONFETTIFARGER = ["#ff5d8f", "#ffd25e", "#5ee0b8", "#6fb2ff", "#c08cff", "#ff9a52"];
+function lagKonfetti() {
+  for (let i = 0; i < 40; i++) {
+    const vinkel = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
+    const fart = 3 + Math.random() * 4;
+    spill.partikler.push({
+      konfetti: true, x: spill.x, y: spill.y - FIGUR_RADIUS,
+      vx: Math.cos(vinkel) * fart, vy: Math.sin(vinkel) * fart,
+      liv: 1.6 + Math.random() * 0.6, snurr: Math.random() * 6, fart: (Math.random() - 0.5) * 14,
+      farge: KONFETTIFARGER[i % KONFETTIFARGER.length]
+    });
+  }
+}
+
+// Tauet kommer rolig ned, griper figuren og løfter den opp til startposisjonen.
+function startLoft() {
+  settAnker(spill.x);
+  sjekkSone();
+  const maal = startPosisjon();
+  spill.loft = { fraX: spill.x, fraY: spill.y, tilX: maal.x, tilY: maal.y, tid: 0, ned: innst.kastTid, varighet: innst.loftTid };
+  spill.fase = "loftes";
+}
+
+// Bom: du mister et liv og starter igjen fra plattformen du sto på.
+function bom() {
+  spill.liv--;
+  oppdaterTall();
+  const livEl = document.getElementById("liv");
+  livEl.classList.remove("minus"); void livEl.offsetWidth; livEl.classList.add("minus");
+  if (spill.liv > 0) {
+    // Katten henger i tauet igjen, blinker litt, og prøver på nytt når du trykker
+    klarTilSving();
+    spill.spor = [];
+    spill.balanse = null;
+    spill.fase = "start";
+    spill.blink = 1.6;
+    spill.tekster.push({ x: spill.x, y: spill.y - 0.9, tekst: "Mistet et liv", liv: 1.3, perfekt: false });
+    return;
+  }
+  spill.fase = "slutt";
+  visMelding("Bom!", "Du kom til level " + (Math.floor(spill.klart / innst.levelHver) + 1) + " og klarte " + spill.klart + (spill.klart === 1 ? " plattform" : " plattformer") + " og fikk " + spill.poeng + " poeng.");
+  leggTilKnapp("Spill igjen");
+}
+
+// ============================================================
+// FYSIKK: kjøres i små steg for jevn bevegelse
+// ============================================================
+function steg(dt) {
+  const { g, vind } = forhold();
+  if (spill.fase === "sving" || spill.fase === "start") {
+    // Pendelregelen: jo lenger ut, jo sterkere trekkes den tilbake mot midten.
+    spill.vinkelFart += -(innst.svingTyngde / innst.tauLengde) * Math.sin(spill.vinkel) * dt;
+    spill.vinkel += spill.vinkelFart * dt;
+    oppdaterFigurPaaTau();
+  } else if (spill.fase === "flyr") {
+    const forrigeBunn = spill.y + FIGUR_RADIUS;
+    spill.vy += g * dt;
+    spill.vx += vind * dt;
+    spill.x += spill.vx * dt;
+    spill.y += spill.vy * dt;
+    const bunn = spill.y + FIGUR_RADIUS;
+    if (spill.vy > 0) {
+      // Sjekker plattformen du står på og de neste.
+      for (let nr = spill.her; nr < spill.her + 3; nr++) {
+        const p = spill.plattformer[nr];
+        if (p.synker) continue; // søyla du forlot har sunket bort
+        // Teller som landing så lenge en god del av figuren er over plattformen.
+        const paa = Math.abs(spill.x - p.x) <= p.b / 2 + 0.25;
+        if (paa && forrigeBunn <= p.y && bunn >= p.y) { land(nr); return; }
+      }
+    }
+    if (spill.y > spill.plattformer[spill.her].y + 6) bom();
+  }
+}
+
+// ============================================================
+// TEGNING
+// ============================================================
+const lerret = document.getElementById("spill");
+const ctx = lerret.getContext("2d");
+let skala = 32, basisSkala = 32, skjermB = 0, skjermH = 0;
+
+function tilpassStorrelse() {
+  const dpr = window.devicePixelRatio || 1;
+  skjermB = window.innerWidth; skjermH = window.innerHeight;
+  lerret.width = skjermB * dpr; lerret.height = skjermH * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  basisSkala = Math.min(skjermB / SYNLIG_BREDDE, skjermH / 11);
+  skala = basisSkala * (spill.kamera.zoom || 1);
+}
+// Gjør om fra meter i verdenen til punkter på skjermen, ut fra hvor kameraet er.
+const sx = x => skjermB / 2 + (x - spill.kamera.x) * skala;
+const sy = y => skjermH * 0.62 + (y - spill.kamera.y) * skala;
+
+const farge = navn => getComputedStyle(document.documentElement).getPropertyValue(navn).trim();
+let F = {};
+function hentFarger() { F = { bg: farge("--bg"), fg: farge("--fg"), muted: farge("--muted"), line: farge("--line"), accent: farge("--accent"), good: farge("--good"), "--line": farge("--line"), "--vind": farge("--vind"), "--lett": farge("--lett"), "--tung": farge("--tung"), pels: farge("--pels"), ansikt: farge("--ansikt"), oye: farge("--oye") }; }
+
+// Tyngdekraften vises også i lufta:
+// tung = små tunge dråper som drysser nedover, lett = bobler som svever rolig oppover.
+// Jo høyere nivå, jo flere og raskere blir de.
+function tegnTyngde() {
+  const p = spill.plattformer[spill.her + 1];
+  const del = p && p.deler.find(d => d.type === "tung" || d.type === "lett");
+  if (!del) return;
+  const n = del.nivaa, tung = del.type === "tung";
+  ctx.fillStyle = ctx.strokeStyle = F[SONER[del.type].farge];
+  const antall = Math.round(5 + n * 3);
+  for (let i = 0; i < antall; i++) {
+    const tilf = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+    const tilf2 = Math.abs(Math.sin(i * 39.346) * 12543.12) % 1;
+    const x = ((tilf * 1.3 + i * 0.071) % 1) * skjermB - (spill.kamera.x * skala * 0.3) % skjermB;
+    const xx = (x + skjermB) % skjermB;
+    if (tung) {
+      // Faller fortere og fortere jo tyngre det er, og strekkes ut i fart
+      const fart = (40 + tilf2 * 40) * (0.6 + n * 0.45);
+      const y = (tilf2 * skjermH + spill.tid * fart) % (skjermH + 40) - 20;
+      const lengde = 4 + n * 1.6;
+      ctx.globalAlpha = 0.45 + tilf * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(xx - 3, y - lengde); ctx.lineTo(xx + 3, y - lengde); ctx.lineTo(xx, y + 3); ctx.closePath(); ctx.fill();
+    } else {
+      // Svever rolig opp og vugger fra side til side
+      const fart = (12 + tilf2 * 14) * (0.6 + n * 0.25);
+      const y = skjermH - ((tilf2 * skjermH + spill.tid * fart) % (skjermH + 40)) + 20;
+      const vugg = Math.sin(spill.tid * 1.5 + i) * 8;
+      const rad = 3 + tilf * 3.5;
+      ctx.globalAlpha = 0.5 + tilf * 0.4;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(xx + vugg, y, rad, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha *= 0.35;
+      ctx.beginPath(); ctx.arc(xx + vugg, y, rad, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Små streker som viser vinden når det blåser.
+function tegnVind() {
+  const { vind } = forhold();
+  if (vind === 0) return;
+  ctx.strokeStyle = F["--vind"]; ctx.lineWidth = 1.5;
+  // Sterkere vind gir flere, lengre og raskere streker.
+  const styrke = Math.abs(vind) / innst.vindPerNivaa; // 1 til 9
+  const lengde = 12 + styrke * 3, retning = Math.sign(vind);
+  const antall = Math.round(6 + styrke * 3);
+  for (let i = 0; i < antall; i++) {
+    const tilfeldig = Math.abs(Math.sin(i * 78.233) * 43758.5453) % 1;
+    const fart = (60 + tilfeldig * 60) * (1 + styrke * 0.35);
+    const bane = skjermB + 2 * lengde;
+    let x = (tilfeldig * bane + spill.tid * fart) % bane;
+    if (retning < 0) x = bane - x;
+    x -= lengde;
+    const y = skjermH * (0.12 + tilfeldig * 0.7) + Math.sin(spill.tid * 2 + i) * 6;
+    ctx.globalAlpha = 0.25 + tilfeldig * 0.3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + lengde * retning, y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Svake prikker i bakgrunnen som beveger seg saktere enn banen, så det føles som du reiser.
+// ============================================================
+// BAKGRUNN: himmel, sol eller måne, og åser i flere lag.
+// Hvert level er en ny tid på døgnet. Fargene kan du endre her.
+// himmel: fra toppen og ned. aser: fra bakerst til fremst.
+// sol: plassering (andel av skjermen), farge og størrelse. stjerner: 0 er ingen, 1 er mange.
+// ============================================================
+const DOGN = [
+  { navn: "Morgen", himmel: ["#4f6fb8", "#93aee0", "#f3c2b4", "#ffdfa6"], aser: ["#9aa9cf", "#7387b8", "#52669a"],
+    solX: 0.25, solY: 0.6, sol: "#fff0c2", solR: 4, stjerner: 0.1, maane: 0 },
+  { navn: "Dag", himmel: ["#2a78d0", "#58a3ea", "#9bcdf4", "#d6edfb"], aser: ["#86bfa5", "#5f9e86", "#3e7b69"],
+    solX: 0.6, solY: 0.15, sol: "#fffbe8", solR: 3.4, stjerner: 0, maane: 0 },
+  { navn: "Kveld", himmel: ["#2c3570", "#7a4f8f", "#d9798a", "#f6b38a"], aser: ["#9b6a9c", "#6e4f8a", "#45396e"],
+    solX: 0.72, solY: 0.58, sol: "#ffecbe", solR: 4, stjerner: 1, maane: 0 },
+  { navn: "Natt", himmel: ["#070b26", "#131b48", "#262862", "#3c3572"], aser: ["#34315f", "#25234d", "#17163a"],
+    solX: 0.75, solY: 0.18, sol: "#dfe6ff", solR: 2.4, stjerner: 1.8, maane: 1 }
+];
+const ASER = [
+  { dybde: 0.12, hoyde: 0.66, bolge: 0.10 },
+  { dybde: 0.25, hoyde: 0.74, bolge: 0.08 },
+  { dybde: 0.45, hoyde: 0.82, bolge: 0.06 }
+];
+// Blander to farger. t = 0 gir den første, t = 1 den andre.
+function rgb(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function bland(a, b, t, alfa = 1) {
+  const x = rgb(a), y = rgb(b);
+  return "rgba(" + x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(",") + "," + alfa + ")";
+}
+// Søylene får farger fra denne lista
+// Fargene på poengfeltene: midten først, så feltet rundt
+const SONEFARGER = ["#ff4f8b", "#ffd447"];
+const SOYLEFARGER = ["#5ec8a6", "#f2bd4f", "#ee7f7d", "#76a8f2", "#b58ef0", "#f79b5b", "#7fd36b"];
+
+function tegnBakgrunn() {
+  // Finn de to tidene på døgnet vi er mellom, og hvor langt vi har kommet
+  const dogn = Math.max(0, spill.dogn);
+  const hel = Math.floor(dogn);
+  const a = DOGN[hel % DOGN.length], b = DOGN[(hel + 1) % DOGN.length];
+  const r = dogn - hel, t = r * r * (3 - 2 * r); // myk overgang
+  const tall = (x, y) => x + (y - x) * t;
+
+  const g = ctx.createLinearGradient(0, 0, 0, skjermH);
+  a.himmel.forEach((f, i) => g.addColorStop(i / (a.himmel.length - 1), bland(f, b.himmel[i], t)));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, skjermB, skjermH);
+
+  // Sola (eller månen), som nesten står stille
+  const solX = skjermB * tall(a.solX, b.solX) - spill.kamera.x * skala * 0.02;
+  const solY = skjermH * tall(a.solY, b.solY);
+  const solR = skala * tall(a.solR, b.solR);
+  const sol = ctx.createRadialGradient(solX, solY, 0, solX, solY, solR);
+  sol.addColorStop(0, bland(a.sol, b.sol, t, 0.95));
+  sol.addColorStop(0.25, bland(a.sol, b.sol, t, 0.5));
+  sol.addColorStop(1, bland(a.sol, b.sol, t, 0));
+  ctx.fillStyle = sol;
+  ctx.fillRect(solX - solR, solY - solR, solR * 2, solR * 2);
+  const maane = tall(a.maane, b.maane);
+  if (maane > 0) {
+    ctx.globalAlpha = maane;
+    ctx.fillStyle = "#f4f1e4";
+    ctx.beginPath(); ctx.arc(solX, solY, skala * 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#d9d5c6"; // små kratere
+    ctx.beginPath(); ctx.arc(solX - skala * 0.12, solY - skala * 0.08, skala * 0.09, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(solX + skala * 0.15, solY + skala * 0.12, skala * 0.06, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  const stjerner = tall(a.stjerner, b.stjerner);
+
+  // Små stjerner høyt oppe
+  ctx.fillStyle = "#ffffff";
+  for (let i = 0; i < 26; i++) {
+    const t = Math.abs(Math.sin(i * 91.17) * 43758.5453) % 1;
+    const x = ((t * 1.7 + i * 0.137) % 1) * skjermB - (spill.kamera.x * skala * 0.03) % skjermB;
+    ctx.globalAlpha = Math.min(1, (0.25 + 0.35 * Math.abs(Math.sin(spill.tid * 0.8 + i))) * stjerner);
+    ctx.beginPath(); ctx.arc((x + skjermB) % skjermB, skjermH * 0.03 + t * skjermH * 0.28, 0.6 + t, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Åser som glir saktere jo lenger unna de er
+  ASER.forEach((as, n) => {
+    const forskyv = spill.kamera.x * as.dybde * skala;
+    ctx.fillStyle = bland(a.aser[n], b.aser[n], t);
+    ctx.beginPath();
+    ctx.moveTo(0, skjermH);
+    for (let x = 0; x <= skjermB + 8; x += 8) {
+      const u = (x + forskyv) / skala;
+      const y = skjermH * (as.hoyde - as.bolge * (0.5 * Math.sin(u * 0.35 + as.dybde * 10) + 0.3 * Math.sin(u * 0.9 + 1.3) + 0.2 * Math.sin(u * 1.9)));
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(skjermB, skjermH);
+    ctx.closePath(); ctx.fill();
+  });
+}
+
+// En liten skygge på søyla rett under figuren mens den flyr, så det er lettere å se hvor den lander
+function tegnSkygge() {
+  if (spill.fase !== "flyr") return;
+  for (let nr = spill.her + 1; nr < spill.her + 3; nr++) {
+    const p = spill.plattformer[nr];
+    if (!p || Math.abs(spill.x - p.x) > p.b / 2 + FIGUR_RADIUS * 0.3 || spill.y > p.y) continue;
+    const naerhet = Math.max(0.2, 1 - (p.y - spill.y) / 8);
+    ctx.globalAlpha = 0.35 * naerhet;
+    ctx.fillStyle = "#1a1030";
+    ctx.beginPath(); ctx.ellipse(sx(spill.x), sy(p.y) + 1, 0.22 * skala * naerhet + 3, 0.07 * skala + 1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    return;
+  }
+}
+
+// Gjør en farge lysere (tall over 0) eller mørkere (under 0)
+function skygge(hex, mengde) {
+  const n = parseInt(hex.slice(1), 16);
+  const kanal = v => Math.max(0, Math.min(255, Math.round(mengde > 0 ? v + (255 - v) * mengde : v * (1 + mengde))));
+  const r = kanal(n >> 16), g = kanal((n >> 8) & 255), b = kanal(n & 255);
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+
+// Plattformene er søyler som går helt ned til bunnen av skjermen.
+function tegnPlattform(p, nr) {
+  const tykk = 0.38 * skala;
+  const v = sx(p.x - p.b / 2), y = sy(p.y + (p.synk || 0)), b = p.b * skala;
+  if (v > skjermB + 50 || v + b < -50 || y > skjermH) return;
+  // Plattformer du har forlatt blekner, så det er tydelig at du skal videre.
+  const maal = nr < spill.her || p.synker ? 0.4 : 1;
+  if (p.lys === undefined) p.lys = maal;
+  p.lys += (maal - p.lys) * 0.08;
+  const farge = SOYLEFARGER[Math.abs(Math.floor(Math.sin(nr * 12.9898 + 4) * 1000)) % SOYLEFARGER.length];
+
+  ctx.save();
+  // Søylen, litt smalere enn toppen, med lys venstreside og mørk høyreside
+  const inn = Math.min(b * 0.08, 0.15 * skala);
+  const kropp = ctx.createLinearGradient(v, 0, v + b, 0);
+  kropp.addColorStop(0, skygge(farge, -0.05));
+  kropp.addColorStop(0.35, skygge(farge, -0.15));
+  kropp.addColorStop(1, skygge(farge, -0.45));
+  ctx.fillStyle = kropp;
+  ctx.fillRect(v + inn, y + tykk * 0.5, b - 2 * inn, skjermH - y);
+  // Noen striper nedover søylen
+  ctx.fillStyle = skygge(farge, -0.3);
+  for (let sy2 = y + tykk * 2.2; sy2 < skjermH; sy2 += 0.9 * skala) ctx.fillRect(v + inn, sy2, b - 2 * inn, Math.max(1, 0.06 * skala));
+  // Toppen
+  ctx.fillStyle = skygge(farge, 0.15);
+  ctx.beginPath(); ctx.roundRect(v, y, b, tykk, tykk * 0.4); ctx.fill();
+  // Kant i sonens farge når forholdene er spesielle
+  if (p.sone !== "vanlig") {
+    // To forhold samtidig gir en kant som går fra den ene fargen til den andre
+    const kant = ctx.createLinearGradient(v, 0, v + b, 0);
+    p.deler.forEach((d, i) => kant.addColorStop(p.deler.length === 1 ? 0 : i, F[SONER[d.type].farge]));
+    if (p.deler.length === 1) kant.addColorStop(1, F[SONER[p.deler[0].type].farge]);
+    ctx.strokeStyle = p.ekstrem ? "#ff5d8f" : kant; ctx.lineWidth = p.ekstrem ? 4 : 3;
+    ctx.beginPath(); ctx.roundRect(v, y, b, tykk, tykk * 0.4); ctx.stroke();
+  }
+  // Poengsonene som en blink: gult felt rundt en knallrosa midte
+  for (let i = POENGSONER.length - 2; i >= 0; i--) {
+    const bredde = p.b * POENGSONER[i].andel;
+    const x0 = sx(p.x - bredde / 2), w = Math.max(3, bredde * skala);
+    ctx.fillStyle = SONEFARGER[i];
+    ctx.beginPath(); ctx.roundRect(x0, y + tykk * 0.12, w, tykk * 0.62, tykk * 0.25); ctx.fill();
+  }
+  // Hvit kant rundt midten så den lyser
+  const midt = p.b * POENGSONER[0].andel;
+  ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(sx(p.x - midt / 2), y + tykk * 0.12, Math.max(3, midt * skala), tykk * 0.62, tykk * 0.25); ctx.stroke();
+  // Merke der figuren landet
+  if (spill.merke && spill.merke.nr === nr && spill.fase === "landet") {
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.moveTo(sx(spill.merke.x), y + tykk * 0.95); ctx.lineTo(sx(spill.merke.x) - 5, y + tykk * 1.6); ctx.lineTo(sx(spill.merke.x) + 5, y + tykk * 1.6); ctx.closePath(); ctx.fill();
+  }
+  // Brukte søyler mørkner i stedet for å bli gjennomsiktige
+  if (p.lys < 0.99) {
+    ctx.globalAlpha = (1 - p.lys) * 0.9;
+    ctx.fillStyle = "#3a2f5e";
+    ctx.beginPath(); ctx.roundRect(v - 1, y - 1, b + 2, skjermH - y + 2, tykk * 0.4); ctx.fill();
+  }
+  ctx.restore();
+  const lys = spill.glod.find(gl => gl.nr === nr);
+  if (lys) {
+    ctx.save();
+    ctx.globalAlpha = lys.styrke;
+    ctx.shadowColor = F.good; ctx.shadowBlur = 24;
+    ctx.fillStyle = F.good;
+    ctx.beginPath(); ctx.roundRect(v, y, b, tykk, tykk * 0.4); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function tegn() {
+  tegnBakgrunn();
+  tegnVind();
+  tegnTyngde();
+
+  spill.plattformer.forEach(tegnPlattform);
+  tegnSkygge();
+
+  // Tau og opphengspunkt
+  if (spill.fase === "sving" || spill.fase === "start" || spill.fase === "loftes") {
+    ctx.fillStyle = "#f3e4cc";
+    ctx.beginPath(); ctx.arc(sx(spill.anker.x), sy(spill.anker.y), 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#f3e4cc"; ctx.lineWidth = 2.5;
+    if (spill.tauEnde) {
+      // Tauet er på vei opp fra poten, slakt og bølgete
+      const pote = kastePote(), e = spill.tauEnde;
+      const mx = (pote.x + e.x) / 2, my = (pote.y + e.y) / 2 + e.slakk * 0.8;
+      ctx.beginPath(); ctx.moveTo(sx(pote.x), sy(pote.y)); ctx.quadraticCurveTo(sx(mx), sy(my), sx(e.x), sy(e.y)); ctx.stroke();
+      ctx.beginPath(); ctx.arc(sx(e.x), sy(e.y), 3.5, 0, Math.PI * 2); ctx.fill(); // knuten på enden
+    } else {
+      // Tauet slutter i hendene, litt over midten av figuren
+      const ende = handPunkt();
+      ctx.beginPath(); ctx.moveTo(sx(spill.anker.x), sy(spill.anker.y)); ctx.lineTo(sx(ende.x), sy(ende.y)); ctx.stroke();
+    }
+  }
+
+  // Støv og gnister
+  for (const pt of spill.partikler) {
+    if (pt.konfetti) {
+      ctx.globalAlpha = Math.min(1, pt.liv);
+      ctx.save(); ctx.translate(sx(pt.x), sy(pt.y)); ctx.rotate(pt.snurr);
+      ctx.fillStyle = pt.farge;
+      ctx.fillRect(-0.07 * skala, -0.035 * skala * Math.abs(Math.cos(pt.snurr * 1.3)) - 1, 0.14 * skala, 0.07 * skala * Math.abs(Math.cos(pt.snurr * 1.3)) + 2);
+      ctx.restore();
+      continue;
+    }
+    ctx.globalAlpha = Math.max(0, pt.liv) * (pt.ring ? 0.8 : 0.6);
+    if (pt.ring) {
+      ctx.strokeStyle = F.good; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(sx(pt.x), sy(pt.y), (1.2 - pt.liv) * 1.4 * skala, (1.2 - pt.liv) * 0.35 * skala, 0, 0, Math.PI * 2); ctx.stroke();
+    } else {
+      ctx.fillStyle = pt.perfekt ? F.good : "#fff3e2";
+      ctx.beginPath(); ctx.arc(sx(pt.x), sy(pt.y), pt.storrelse * skala, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Banen figuren har fløyet
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  for (const p of spill.spor) { ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 2, 0, Math.PI * 2); ctx.fill(); }
+
+  tegnFigur();
+
+  // Svevende poengtekst
+  ctx.textAlign = "center";
+  ctx.font = "700 20px ui-rounded, system-ui, sans-serif";
+  ctx.shadowColor = "rgba(30,20,60,0.6)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 1;
+  for (const t of spill.tekster) {
+    ctx.globalAlpha = Math.max(0, t.liv);
+    ctx.fillStyle = t.perfekt ? "#d6ffe4" : "#ffffff";
+    ctx.fillText(t.tekst, sx(t.x), sy(t.y - 0.4));
+  }
+  ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.globalAlpha = 1;
+}
+
+// ============================================================
+// FIGUREN: en liten skapning med blad på hodet
+// ============================================================
+const iTauet = () => (spill.fase === "sving" || spill.fase === "start" || spill.fase === "loftes") && !spill.tauEnde;
+
+// Hvor mye figuren er vridd. 0 = rett opp.
+function figurVinkel() {
+  if (spill.fase === "sving" || spill.fase === "start") return -spill.vinkel;
+  if (spill.fase === "loftes" && !spill.tauEnde) {
+    return -Math.atan2(spill.x - spill.anker.x, spill.y - spill.anker.y);
+  }
+  if (spill.fase === "flyr") return Math.max(-0.6, Math.min(0.6, spill.vx * 0.06 + spill.vy * 0.02));
+  return 0;
+}
+
+// Hvor mye katten heller ut over kanten mens den balanserer
+function balanseHelning() {
+  const b = spill.balanse;
+  if (!b || spill.fase !== "landet") return 0;
+  const t = b.t, myk = x => x * x * (3 - 2 * x);
+  let h;
+  if (t < 0.25) h = 0.55 * myk(t / 0.25);                                   // vipper ut
+  else if (t < 1.6) h = 0.45 + 0.18 * Math.sin((t - 0.25) * 9) + 0.12 * Math.sin(Math.PI * (t - 0.25) / 1.35); // vingler
+  else if (t < 2.0) h = 0.45 + (-0.2 - 0.45) * myk((t - 1.6) / 0.4);      // kaster seg inn
+  else if (t < 2.4) h = -0.2 * (1 - myk((t - 2.0) / 0.4));                 // retter seg opp
+  else h = 0;
+  return h * b.side;
+}
+
+// Poten katten kaster tauet med
+function kastePote() { return { x: spill.x + 0.3 * FIGUR_RADIUS, y: spill.y - 1.1 * FIGUR_RADIUS }; }
+
+// Punktet der hendene holder tauet
+function handPunkt() {
+  const v = figurVinkel(), avstand = FIGUR_RADIUS * 1.15;
+  return { x: spill.x + Math.sin(v) * avstand, y: spill.y - Math.cos(v) * avstand };
+}
+
+// Farger på katten. Bytt gjerne!
+const FIGUR = {
+  pels: "#f0a04b", pelsMork: "#c9772c", striper: "#b8641f", lys: "#fde3c2",
+  nese: "#ff8fa3", briller: "#16141c", glans: "#9fd3ff", munn: "#6b3a1a"
+};
+
+function tegnFigur() {
+  const r = FIGUR_RADIUS * skala;
+  const k = spill.klem * 0.18;
+  const vingling = Math.sin(spill.tid * 28) * 0.08 * spill.vingle * skala;
+  const lt = spill.landTid;
+  const perfekt = spill.fase === "landet" && spill.perfektLanding;
+  // Et lite hopp etter landing. Ved treff midt i blir det et høyere hopp med piruett.
+  let hopp = 0;
+  if (spill.fase === "landet") {
+    if (perfekt && lt > 0.15 && lt < 0.85) hopp = Math.sin(Math.PI * (lt - 0.15) / 0.7) * 0.6;
+    else if (!perfekt && lt > 0.2 && lt < 0.65) hopp = Math.sin(Math.PI * (lt - 0.2) / 0.45) * 0.18;
+  }
+  const bal = spill.fase === "landet" ? spill.balanse : null;
+  if (bal) hopp = bal.t > 1.6 && bal.t < 2.0 ? Math.sin(Math.PI * (bal.t - 1.6) / 0.4) * 0.3 : 0;
+  const helning = balanseHelning();
+  const piruett = perfekt && lt > 0.15 && lt < 0.85 ? Math.cos(2 * Math.PI * (lt - 0.15) / 0.7) : 1;
+  const salutt = perfekt && lt >= 0.85;
+  const v = figurVinkel();
+  const sirkel = (x, y, rad) => { ctx.beginPath(); ctx.arc(x * r, y * r, rad * r, 0, Math.PI * 2); ctx.fill(); };
+  const linje = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1 * r, y1 * r); ctx.lineTo(x2 * r, y2 * r); ctx.stroke(); };
+
+  ctx.save();
+  if (spill.blink > 0 && Math.sin(spill.tid * 30) > 0) ctx.globalAlpha = 0.3;
+  ctx.translate(sx(spill.x) + vingling, sy(spill.y - hopp));
+  ctx.rotate(v);
+  // Ved kanttreff vipper katten rundt føttene, ut mot stupet og tilbake
+  if (helning) { ctx.translate(0, r); ctx.rotate(helning); ctx.translate(0, -r); }
+  ctx.scale((1 + k) * piruett, 1 - k);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+  // Hvor hender og føtter er, avhengig av hva figuren gjør
+  const vift = Math.sin(spill.tid * 12) * 0.1;
+  let hender, foetter;
+  if (iTauet() && spill.fase === "loftes" && spill.klatring > 0) {
+    // Klatrer: potene tar annenhvert tak, og beina sparker litt
+    const s = Math.sin(spill.klatring * Math.PI);
+    hender = [[-0.07, -1.15 - 0.18 * s], [0.07, -1.15 + 0.18 * s]];
+    foetter = [[-0.14, 1.0 - 0.12 * s], [0.16, 0.94 + 0.12 * s]];
+  } else if (iTauet()) {
+    hender = [[-0.07, -1.15], [0.07, -1.15]];
+    foetter = [[-0.12, 1.0], [0.16, 0.94]];
+  } else if (spill.fase === "loftes" && spill.tauEnde) {
+    // Kaster tauet: én pote strukket opp
+    hender = [[-0.42, 0.3], [0.3, -1.1]];
+    foetter = [[-0.14, 1.0], [0.14, 1.0]];
+  } else if (spill.fase === "flyr") {
+    hender = [[-0.68, -0.72 + vift], [0.7, -0.68 - vift]];
+    foetter = [[-0.3, 0.92], [0.26, 0.85]];
+  } else if (bal && bal.t < 1.8) {
+    // Armene går rundt som vindmøller, og den indre foten løftes
+    const w = spill.tid * 16;
+    hender = [[-0.55 + 0.22 * Math.cos(w), -0.55 + 0.4 * Math.sin(w)], [0.55 + 0.22 * Math.cos(w + Math.PI), -0.55 + 0.4 * Math.sin(w + Math.PI)]];
+    foetter = [[-0.14, bal.side < 0 ? 1.0 : 0.82], [0.14, bal.side > 0 ? 1.0 : 0.82]];
+  } else if (salutt) {
+    hender = [[-0.4, 0.32], [0.34, -1.12]]; // én hånd i været
+    foetter = [[-0.14, 1.0], [0.14, 1.0]];
+  } else if (spill.tauEnde || hopp > 0) {
+    hender = [[-0.48, -0.95], [0.48, -0.95]];
+    foetter = [[-0.14, 1.0], [0.14, 1.0]];
+  } else {
+    hender = [[-0.42, 0.3], [0.42, 0.3]];
+    foetter = [[-0.14, 1.0], [0.14, 1.0]];
+  }
+
+  // Halen svinger bak katten
+  const hale = Math.sin(spill.tid * 4) * 0.12 + (spill.fase === "flyr" ? -0.15 : 0);
+  ctx.strokeStyle = FIGUR.pels; ctx.lineWidth = Math.max(4, r * 0.17);
+  ctx.beginPath(); ctx.moveTo(-0.2 * r, 0.45 * r);
+  ctx.bezierCurveTo(-0.75 * r, (0.55 + hale) * r, -0.8 * r, (-0.05 + hale) * r, (-0.55 + hale) * r, -0.25 * r);
+  ctx.stroke();
+  ctx.strokeStyle = FIGUR.striper; ctx.lineWidth = Math.max(4, r * 0.17);
+  ctx.beginPath(); ctx.moveTo((-0.58 + hale) * r, -0.2 * r); ctx.lineTo((-0.55 + hale) * r, -0.25 * r); ctx.stroke();
+
+  // Korte bein med poter
+  ctx.lineWidth = Math.max(4, r * 0.24);
+  ctx.strokeStyle = FIGUR.pelsMork; linje(-0.12, 0.5, foetter[0][0], foetter[0][1] - 0.05);
+  ctx.strokeStyle = FIGUR.pels; linje(0.12, 0.5, foetter[1][0], foetter[1][1] - 0.05);
+  ctx.fillStyle = FIGUR.lys;
+  for (const [fx, fy] of foetter) { ctx.beginPath(); ctx.ellipse((fx + 0.04) * r, (fy - 0.02) * r, 0.12 * r, 0.065 * r, 0, 0, Math.PI * 2); ctx.fill(); }
+
+  // Rund kropp med lys mage og striper
+  ctx.fillStyle = FIGUR.pels;
+  ctx.beginPath(); ctx.ellipse(0, 0.2 * r, 0.33 * r, 0.42 * r, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = FIGUR.lys;
+  ctx.beginPath(); ctx.ellipse(0.04 * r, 0.27 * r, 0.19 * r, 0.3 * r, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = FIGUR.striper; ctx.lineWidth = Math.max(1.5, r * 0.05);
+  for (const y of [0.0, 0.16, 0.32]) { linje(-0.32, y, -0.18, y + 0.03); }
+
+  // Armer med poter
+  ctx.strokeStyle = FIGUR.pels; ctx.lineWidth = Math.max(3.5, r * 0.19);
+  linje(-0.24, -0.08, hender[0][0], hender[0][1]);
+  linje(0.24, -0.08, hender[1][0], hender[1][1]);
+  ctx.fillStyle = FIGUR.lys;
+  sirkel(hender[0][0], hender[0][1], 0.1); sirkel(hender[1][0], hender[1][1], 0.1);
+
+  // Hode med spisse ører
+  ctx.fillStyle = FIGUR.pels;
+  for (const side of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(side * 0.36 * r, -0.62 * r); ctx.lineTo(side * 0.3 * r, -1.02 * r); ctx.lineTo(side * 0.05 * r, -0.78 * r); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = FIGUR.nese;
+  for (const side of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(side * 0.3 * r, -0.68 * r); ctx.lineTo(side * 0.28 * r, -0.9 * r); ctx.lineTo(side * 0.14 * r, -0.77 * r); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = FIGUR.pels;
+  ctx.beginPath(); ctx.ellipse(0, -0.52 * r, 0.4 * r, 0.33 * r, 0, 0, Math.PI * 2); ctx.fill();
+  // Striper i panna
+  ctx.strokeStyle = FIGUR.striper; ctx.lineWidth = Math.max(1.5, r * 0.05);
+  linje(0, -0.84, 0, -0.72); linje(-0.1, -0.82, -0.08, -0.73); linje(0.1, -0.82, 0.08, -0.73);
+  // Lyst snuteparti
+  ctx.fillStyle = FIGUR.lys;
+  ctx.beginPath(); ctx.ellipse(0.06 * r, -0.4 * r, 0.2 * r, 0.13 * r, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Solbriller
+  ctx.fillStyle = FIGUR.briller;
+  ctx.beginPath(); ctx.roundRect(-0.2 * r, -0.66 * r, 0.22 * r, 0.14 * r, 0.06 * r); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(0.08 * r, -0.66 * r, 0.22 * r, 0.14 * r, 0.06 * r); ctx.fill();
+  ctx.strokeStyle = FIGUR.briller; ctx.lineWidth = Math.max(1.5, r * 0.045);
+  linje(0.02, -0.62, 0.08, -0.62);
+  ctx.strokeStyle = FIGUR.glans; ctx.lineWidth = Math.max(1.2, r * 0.03);
+  linje(-0.15, -0.63, -0.08, -0.62); linje(0.13, -0.63, 0.2, -0.62);
+
+  // Nese, munn og værhår
+  ctx.fillStyle = FIGUR.nese;
+  ctx.beginPath(); ctx.moveTo(0.02 * r, -0.47 * r); ctx.lineTo(0.12 * r, -0.47 * r); ctx.lineTo(0.07 * r, -0.41 * r); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = FIGUR.munn; ctx.lineWidth = Math.max(1.3, r * 0.035);
+  const glad = spill.fase === "landet";
+  const m = glad ? 0.07 : 0.05;
+  ctx.beginPath(); ctx.arc((0.07 - m) * r, -0.4 * r, m * r, 0, Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc((0.07 + m) * r, -0.4 * r, m * r, 0, Math.PI); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = Math.max(1, r * 0.02);
+  for (const side of [-1, 1]) {
+    linje(0.07 + side * 0.16, -0.42, 0.07 + side * 0.42, -0.47);
+    linje(0.07 + side * 0.16, -0.38, 0.07 + side * 0.42, -0.36);
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+// HOVEDLØKKE
+// ============================================================
+let sist = performance.now();
+let sporTeller = 0;
+function løkke(naa) {
+  const dt = Math.min(0.05, (naa - sist) / 1000);
+  sist = naa;
+  spill.tid += dt;
+  // Himmelen glir rolig over til tiden på døgnet som hører til levelet
+  spill.dogn = Math.min(Math.floor(spill.klart / innst.levelHver), spill.dogn + dt * innst.dognFart);
+  const smaSteg = 8;
+  for (let i = 0; i < smaSteg; i++) steg(dt / smaSteg);
+
+  if (spill.fase === "flyr") {
+    sporTeller += dt;
+    if (sporTeller > 0.03) { spill.spor.push({ x: spill.x, y: spill.y }); sporTeller = 0; }
+  }
+  if (spill.fase === "landet") {
+    spill.landTid += dt;
+    spill.ventetid -= dt;
+    const b = spill.balanse;
+    if (b) {
+      b.t += dt;
+      // Etter litt kaving tar katten et lite hopp inn på plattformen
+      const t = Math.min(1, Math.max(0, (b.t - 1.6) / 0.4));
+      spill.x = b.fraX - b.side * 0.45 * t * t * (3 - 2 * t);
+      if (b.t >= 2.0 && !b.puh) { b.puh = true; spill.tekster.push({ x: spill.x, y: spill.y - 1.3, tekst: "Puh!", liv: 1, perfekt: false }); }
+    }
+    if (spill.ventetid <= 0) startLoft();
+  }
+  if (spill.fase === "loftes") {
+    const l = spill.loft;
+    l.tid += dt;
+    const myk = t => t * t * (3 - 2 * t); // myk start og myk stopp
+    if (l.tid < l.ned) {
+      // Først kaster katten tauet opp. Det flyr i en bue og hekter seg fast i festet.
+      const t = l.tid / l.ned, ut = 1 - (1 - t) * (1 - t);
+      const pote = kastePote();
+      spill.tauEnde = {
+        x: pote.x + (spill.anker.x - pote.x) * ut - Math.sin(Math.PI * t) * 0.7,
+        y: pote.y + (spill.anker.y - pote.y) * ut,
+        slakk: 1 - t
+      };
+    } else {
+      if (spill.tauEnde) {
+        // Klonk! Tauet sitter fast
+        spill.tauEnde = null;
+        spill.partikler.push({ ring: true, x: spill.anker.x, y: spill.anker.y, liv: 1, perfekt: false });
+      }
+      // Så klatrer katten opp, tak for tak, og søyla under synker bort
+      const under = spill.plattformer[spill.her];
+      if (!under.synker) { under.synker = true; under.synkFart = 0; }
+      const t = Math.min(1, (l.tid - l.ned) / l.varighet);
+      const tak = t * innst.klatreTak;
+      const st = t >= 1 ? 1 : (Math.floor(tak) + myk(tak % 1)) / innst.klatreTak;
+      spill.klatring = tak;
+      spill.x = l.fraX + (l.tilX - l.fraX) * myk(st);
+      spill.y = l.fraY + (l.tilY - l.fraY) * st;
+      if (t >= 1) { klarTilSving(); spill.spor = []; spill.fase = "sving"; spill.klatring = 0; }
+    }
+  }
+
+  // Kameraet glir rolig etter figuren
+  const her = spill.plattformer[spill.her];
+  // Kameraet rammer inn svingen og neste plattform, og følger katten når den flyr
+  const neste = spill.plattformer[spill.her + 1];
+  // Er neste plattform langt unna, zoomer kameraet litt ut så du ser både katten og målet
+  const venstre = Math.min(spill.anker.x - innst.tauLengde * 0.85, spill.x - 1), hoyre = neste.x + neste.b / 2 + 1.5;
+  const zoomMaal = Math.max(0.72, Math.min(1, (skjermB / basisSkala) / (hoyre - venstre)));
+  spill.kamera.zoom = (spill.kamera.zoom || 1) + (zoomMaal - (spill.kamera.zoom || 1)) * (1 - Math.exp(-1.5 * dt));
+  skala = basisSkala * spill.kamera.zoom;
+  const synlig = skjermB / skala;
+  const ramme = Math.min((venstre + hoyre) / 2, venstre + synlig / 2);
+  const maalX = Math.max(ramme, spill.x + 1);
+  const mykhet = 1 - Math.exp(-2 * dt);
+  spill.kamera.x += (maalX - spill.kamera.x) * mykhet;
+  spill.kamera.y += (her.y - spill.kamera.y) * mykhet;
+
+  for (const gl of spill.glod) gl.styrke -= dt * 0.8;
+  spill.glod = spill.glod.filter(gl => gl.styrke > 0);
+  // Søyler som synker, går fortere og fortere ned. Kommer de tilbake, stiger de rolig opp.
+  for (const p of spill.plattformer) {
+    if (p.synker) { p.synkFart = (p.synkFart || 0) + dt * 6; p.synk = Math.min(30, (p.synk || 0) + p.synkFart * dt); }
+    else if (p.synk > 0) p.synk = Math.max(0, p.synk - dt * Math.max(8, p.synk * 3));
+  }
+  spill.klem = Math.max(0, spill.klem - dt * 3.5);
+  spill.vingle = Math.max(0, spill.vingle - dt * 1.2);
+  spill.blink = Math.max(0, spill.blink - dt);
+  for (const t of spill.tekster) { t.liv -= dt * 0.6; t.y -= dt * 0.4; }
+  for (const pt of spill.partikler) {
+    if (pt.konfetti) {
+      pt.liv -= dt * 0.8;
+      pt.vy += 6 * dt; pt.vx *= 1 - dt * 1.5; pt.vy *= 1 - dt * 1.5;
+      pt.x += pt.vx * dt + Math.sin(spill.tid * 6 + pt.snurr) * 0.01; pt.y += pt.vy * dt;
+      pt.snurr += pt.fart * dt;
+      continue;
+    }
+    pt.liv -= dt * (pt.ring ? 1.4 : 1.6);
+    if (!pt.ring) { pt.vy += 2.5 * dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; }
+  }
+  spill.partikler = spill.partikler.filter(pt => pt.liv > 0);
+  spill.tekster = spill.tekster.filter(t => t.liv > 0);
+
+  tegn();
+  requestAnimationFrame(løkke);
+}
+
+// ============================================================
+// TRYKK, TEKST OG JUSTERINGSPANEL
+// ============================================================
+lerret.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  if (!melding.hidden) return; // så lenge teksten vises, er det knappen som gjelder
+  if (spill.fase === "start" || spill.fase === "sving") { spill.fase = "sving"; slipp(); }
+});
+
+const melding = document.getElementById("melding");
+function visMelding(tittel, ...linjer) {
+  melding.innerHTML = "";
+  const h = document.createElement("h1"); h.textContent = tittel; melding.appendChild(h);
+  for (const l of linjer) { const p = document.createElement("p"); p.textContent = l; melding.appendChild(p); }
+  melding.hidden = false;
+}
+function skjulMelding() { melding.hidden = true; }
+function leggTilKnapp(tekst) {
+  const k = document.createElement("button"); k.type = "button"; k.textContent = tekst; melding.appendChild(k);
+}
+melding.addEventListener("click", e => { if (e.target.tagName === "BUTTON") startSpill(); });
+
+function oppdaterTall() {
+  document.getElementById("poeng").textContent = spill.poeng;
+  document.getElementById("runde").textContent = spill.klart;
+  const liv = document.getElementById("liv");
+  liv.innerHTML = "●".repeat(spill.liv) + "<i>" + "●".repeat(innst.liv - spill.liv) + "</i>";
+  liv.setAttribute("aria-label", spill.liv + " liv");
+  document.getElementById("rekord").textContent = rekord;
+}
+
+// Start
+hentFarger();
+tilpassStorrelse();
+window.addEventListener("resize", tilpassStorrelse);
+nyttSpill();
+requestAnimationFrame(løkke);
+</script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script>
+</html>
